@@ -1,0 +1,9 @@
+streamlit
+openpyxl
+python-docx
+pymupdf
+pdfplumber
+pytesseract
+rapidocr-onnxruntime
+numpy
+pillow
