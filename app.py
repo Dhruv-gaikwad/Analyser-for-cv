@@ -246,6 +246,33 @@ DROP_SVG = (
 )
 st.markdown(CSS2.replace("DROPSVG", DROP_SVG), unsafe_allow_html=True)
 
+CSS3 = f"""
+<style>
+/* tab strip like the desktop app: bold dark text, indigo active tab + underline.
+   Works with both old (button) and new (div) Streamlit tab markup, and with any theme colour. */
+[role="tablist"] {{ gap:8px; border-bottom:2px solid {BORDER}; }}
+[data-baseweb="tab-border"] {{ background:{BORDER} !important; }}
+[data-baseweb="tab-highlight"], .react-aria-SelectionIndicator {{ background:{PRIMARY} !important; background-color:{PRIMARY} !important; border-color:{PRIMARY} !important; height:3px !important; }}
+[role="tab"] {{ background:transparent !important; padding:10px 18px; color:#33385F !important; cursor:pointer; }}
+[role="tab"] p, [role="tab"] div, [role="tab"] span {{ color:inherit !important; font-weight:700 !important; font-size:15px !important; }}
+[role="tab"][aria-selected="true"] {{ color:{PRIMARY} !important; }}
+[role="tab"]:hover {{ color:{PRIMARY} !important; background:{PRIMARY_SOFT} !important; }}
+
+/* target skills: sits on the right of the tab strip, label beside the box */
+.st-key-combwrap {{ position:relative; }}
+.st-key-targetbox {{ position:absolute; right:0; top:-2px; width:min(430px, 46%); z-index:20; }}
+.st-key-targetbox [data-testid="stHorizontalBlock"] {{ align-items:center; gap:.6rem; }}
+.tlab {{ font-weight:700; font-size:13px; color:{MUTED}; text-align:right; white-space:nowrap; }}
+.st-key-targetbox input {{ height:40px; }}
+div[data-testid="stTextInput"] [data-baseweb="input"], div[data-testid="stTextInput"] [data-baseweb="base-input"] {{ border-radius:10px; border:1px solid {BORDER} !important; background:{CARD}; }}
+div[data-testid="stTextInput"] [data-baseweb="input"]:focus-within {{ border-color:{PRIMARY} !important; box-shadow:0 0 0 2px {PRIMARY_SOFT}; }}
+@media (max-width: 900px) {{
+  .st-key-targetbox {{ position:static; width:100%; margin-bottom:8px; }}
+}}
+</style>
+"""
+st.markdown(CSS3, unsafe_allow_html=True)
+
 EMPTY_SVG = """<svg width="250" height="190" viewBox="0 0 250 190" xmlns="http://www.w3.org/2000/svg">
 <ellipse cx="125" cy="170" rx="62" ry="8" fill="#E4E6F3"/>
 <rect x="38" y="22" width="130" height="140" rx="8" fill="#E7E9FA"/>
@@ -526,11 +553,6 @@ with right:
     with top_r:
         export_slot = st.container(key="dl_on" if done else "dl_off")
 
-    target_text = ""
-    if mode == "Combined Analysis" and done:
-        t1, t2 = st.columns([2.2, 1])
-        target_text = t2.text_input("Target skills", placeholder="e.g. Python, SQL, Power BI",
-                                    key="target", help="Type the skills you want. Each CV gets a match %.")
     required = core.parse_required_skills(S.get("target", "")) if S.get("target") else []
     combined = core.build_combined_analysis([e["analysis"] for e in done], required) if done else None
 
@@ -571,7 +593,13 @@ with right:
                             "shared and distinctive skills — and a Word or Excel report to download.")
         else:
             count = combined["count"]
-            t_dash, t_cmp, t_mat = st.tabs(["Dashboard", "Compare Candidates", "Skill Matrix"])
+            with st.container(key="combwrap"):
+                with st.container(key="targetbox"):
+                    tl, ti = st.columns([0.8, 2.4])
+                    tl.markdown('<div class="tlab">Target skills</div>', unsafe_allow_html=True)
+                    ti.text_input("Target skills", placeholder="e.g. Python, SQL, Power BI",
+                                  key="target", label_visibility="collapsed")
+                t_dash, t_cmp, t_mat = st.tabs(["Dashboard", "Compare Candidates", "Skill Matrix"])
 
             # ---- dashboard ----
             with t_dash:
