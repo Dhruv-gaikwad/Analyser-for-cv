@@ -1,3 +1,5 @@
+# pyright: reportMissingImports=false, reportMissingModuleSource=false
+# (python-docx / openpyxl are imported lazily; install them with: pip install -r requirements.txt)
 import re
 import os
 import sys
@@ -14,7 +16,7 @@ from pathlib import Path
 
 # Optional/third-party readers. The application starts even if one is missing,
 # and gives a clear installation message when that feature is used.
-try: 
+try:
     import fitz  # PyMuPDF  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
 except ImportError:
     fitz = None
@@ -51,13 +53,6 @@ try:
 except ImportError:
     openpyxl = None
 
-# Drag & drop of files onto the window (pip install tkinterdnd2).
-# Optional: without it the window still works through the Add buttons.
-try:
-    from tkinterdnd2 import TkinterDnD, DND_FILES  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
-except ImportError:
-    TkinterDnD = None
-    DND_FILES = None
 
 
 # ============================================================
@@ -4082,12 +4077,12 @@ def _ensure_docx_support():
     if _import_or_install("docx", "python-docx") is None:
         return False
     try:
-        from docx import Document as _Document
-        from docx.shared import Pt as _Pt, RGBColor as _RGB, Cm as _Cm
-        from docx.enum.text import WD_ALIGN_PARAGRAPH as _AL
-        from docx.enum.table import WD_TABLE_ALIGNMENT as _TA, WD_CELL_VERTICAL_ALIGNMENT as _VA
-        from docx.oxml import OxmlElement as _Ox
-        from docx.oxml.ns import qn as _qn
+        from docx import Document as _Document  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+        from docx.shared import Pt as _Pt, RGBColor as _RGB, Cm as _Cm  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+        from docx.enum.text import WD_ALIGN_PARAGRAPH as _AL  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+        from docx.enum.table import WD_TABLE_ALIGNMENT as _TA, WD_CELL_VERTICAL_ALIGNMENT as _VA  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+        from docx.oxml import OxmlElement as _Ox  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+        from docx.oxml.ns import qn as _qn  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
     except Exception:
         return False
     Document, Pt, RGBColor, Cm = _Document, _Pt, _RGB, _Cm
@@ -4106,13 +4101,13 @@ def _ensure_xlsx_support():
     if _import_or_install("openpyxl", "openpyxl") is None:
         return False
     try:
-        import openpyxl as _op
-        from openpyxl.styles import Font as _F, PatternFill as _PF, Alignment as _Al, Border as _B, Side as _S
-        from openpyxl.utils import get_column_letter as _gcl
-        from openpyxl.formatting.rule import DataBarRule as _DB, ColorScaleRule as _CS
-        from openpyxl.chart import BarChart as _BC, Reference as _Ref
-        from openpyxl.worksheet.properties import PageSetupProperties as _PSP
-        from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE as _ILL
+        import openpyxl as _op  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+        from openpyxl.styles import Font as _F, PatternFill as _PF, Alignment as _Al, Border as _B, Side as _S  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+        from openpyxl.utils import get_column_letter as _gcl  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+        from openpyxl.formatting.rule import DataBarRule as _DB, ColorScaleRule as _CS  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+        from openpyxl.chart import BarChart as _BC, Reference as _Ref  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+        from openpyxl.worksheet.properties import PageSetupProperties as _PSP  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+        from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE as _ILL  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
     except Exception:
         return False
     openpyxl = _op
@@ -4707,11 +4702,11 @@ def export_xlsx(path, analyses, combined):
         )
 
     import math
-    from openpyxl.worksheet.hyperlink import Hyperlink
-    from openpyxl.worksheet.table import Table, TableStyleInfo
-    from openpyxl.worksheet.pagebreak import Break
-    from openpyxl.worksheet.page import PageMargins
-    from openpyxl.chart.label import DataLabelList
+    from openpyxl.worksheet.hyperlink import Hyperlink  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+    from openpyxl.worksheet.table import Table, TableStyleInfo  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+    from openpyxl.worksheet.pagebreak import Break  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+    from openpyxl.worksheet.page import PageMargins  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
+    from openpyxl.chart.label import DataLabelList  # pyright: ignore[reportMissingImports, reportMissingModuleSource]
 
     # ---- corporate palette (shared with the Word report) ---------------------
     NAVY, BLUE, SOFT, ZEBRA = "1F2D4D", "2F5597", "EAF0F8", "F6F8FB"
@@ -5432,3 +5427,7 @@ EXPORTERS = {
     "txt": export_text,
 }
 
+
+# ============================================================
+# MODERN UI TOOLKIT
+# ============================================================
