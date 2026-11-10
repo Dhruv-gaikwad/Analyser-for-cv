@@ -3563,6 +3563,114 @@ def skill_in_resume(analysis, skill):
     return contains_skill(analysis["text"], skill)
 
 
+# ============================================================
+# ATS SCORE (estimate of how well an Applicant Tracking System
+# can read and rank this CV).  Completeness only asks "is the
+# section there?"; ATS also looks at keywords, length, dates,
+# measurable results, action verbs and the file type.
+# ============================================================
+_ATS_ACTION_VERBS = {
+    "led", "managed", "developed", "built", "created", "designed", "implemented", "improved",
+    "increased", "reduced", "analyzed", "analysed", "delivered", "launched", "coordinated",
+    "conducted", "assisted", "organized", "organised", "executed", "optimized", "optimised",
+    "automated", "achieved", "supported", "prepared", "researched", "presented", "collaborated",
+    "streamlined", "generated", "handled", "monitored", "trained", "planned", "negotiated",
+    "maintained", "established", "evaluated", "resolved", "initiated", "drove", "produced",
+}
+
+
+def calculate_ats(analysis, required=None):
+    """Return {"score": 0-100, "parts": [(label, got, max, note)], "tips": [str], "keyword_label": str}.
+
+    `required` = the target skills typed by the user (optional).  When given, keyword points are
+    the % of those skills found in the CV; otherwise they come from how many skills were found.
+    """
+    text = analysis.get("text") or ""
+    exp = analysis.get("experience") or ""
+    parts, tips = [], []
+
+    def add(label, got, top, note, tip=None):
+        parts.append((label, round(got, 1), top, note))
+        if tip and got < top * 0.7:
+            tips.append(tip)
+
+    # 1. Contact details (15)
+    got = (4 if analysis.get("name") else 0) + (6 if analysis.get("email") else 0) + (5 if analysis.get("phone") else 0)
+    missing = [n for n, v in (("name", analysis.get("name")), ("email", analysis.get("email")),
+                              ("phone number", analysis.get("phone"))) if not v]
+    add("Contact details", got, 15, "All found" if not missing else "Missing: " + ", ".join(missing),
+        "Add a clear " + " and ".join(missing) + " at the top of the CV.")
+
+    # 2. Key sections (20)
+    got = (7 if exp else 0) + (6 if analysis.get("education") else 0) + (7 if analysis.get("all_skills") else 0)
+    miss = [n for n, v in (("Experience", exp), ("Education", analysis.get("education")),
+                           ("Skills", analysis.get("all_skills"))) if not v]
+    add("Key sections", got, 20, "All found" if not miss else "Missing: " + ", ".join(miss),
+        "Add standard headings the ATS looks for: " + ", ".join(miss) + ".")
+
+    # 3. Keywords (25)
+    required = [r for r in (required or []) if r]
+    if required:
+        hit = [r for r in required if skill_in_resume(analysis, r)]
+        got = len(hit) / len(required) * 25
+        kw_label = "Target-skill match"
+        note = f"{len(hit)} of {len(required)} target skills found"
+        tip = "Include more of the target skills (where true) in your skills and experience sections."
+    else:
+        n = len(analysis.get("all_skills") or [])
+        got = min(n / 12, 1) * 25
+        kw_label = "Skills found"
+        note = f"{n} recognised skills (12+ scores full marks)"
+        tip = "List more relevant skills. Type target skills above to check them against a job."
+    add(kw_label, got, 25, note, tip)
+
+    # 4. Length (10)
+    words = len(re.findall(r"\w+", text))
+    if 300 <= words <= 900:
+        got, note = 10, f"{words} words - a good length"
+    elif 200 <= words < 300 or 900 < words <= 1200:
+        got, note = 6, f"{words} words - a little short or long"
+    else:
+        got, note = (2 if words else 0), f"{words} words - aim for 300-900"
+    add("CV length", got, 10, note, "Aim for roughly 300-900 words (about 1-2 pages).")
+
+    # 5. Dates (5)
+    years = len(re.findall(r"\b(?:19|20)\d{2}\b", text))
+    got = 5 if years >= 2 else 3 if years == 1 else 0
+    add("Dates", got, 5, f"{years} year(s) found" if years else "No dates found",
+        "Add start and end dates (for example May 2024 - Jul 2025) to jobs and education.")
+
+    # 6. Measurable results (7)
+    nums = len(re.findall(r"\d+(?:\.\d+)?\s*%|[$\u20b9\u20ac\u00a3]\s?\d[\d,.]*|\b\d+\+?\s*(?:users|clients|customers|projects|members|people|leads|sales|products|listings|campaigns)\b",
+                          exp or text, re.I))
+    got = 7 if nums >= 3 else 5 if nums == 2 else 3 if nums == 1 else 0
+    add("Measurable results", got, 7, f"{nums} number-based result(s)" if nums else "No numbers or % found",
+        "Add numbers to achievements, such as 'grew traffic by 30%' or 'managed 5 projects'.")
+
+    # 7. Action verbs (8)
+    found = {w for w in re.findall(r"[a-z]+", text.lower()) if w in _ATS_ACTION_VERBS}
+    got = min(len(found) / 6, 1) * 8
+    add("Action verbs", got, 8, f"{len(found)} strong verb(s) used (6+ scores full marks)",
+        "Start bullet points with action verbs such as Led, Built, Improved or Delivered.")
+
+    # 8. File readability (10)
+    ext = os.path.splitext(analysis.get("filename") or analysis.get("file") or "")[1].lower()
+    if words < 40:
+        got, note = 0, "Very little text could be read"
+    elif ext in (".pdf", ".docx", ".txt"):
+        got, note = 10, f"{ext.strip('.').upper()} is easy for an ATS to read"
+    elif ext in (".doc", ".odt", ".rtf"):
+        got, note = 8, f"{ext.strip('.').upper()} usually works; PDF or DOCX is safer"
+    elif ext in (".png", ".jpg", ".jpeg"):
+        got, note = 3, "Image CVs must be OCR-scanned; many ATS cannot read them"
+    else:
+        got, note = 6, "Uncommon file type"
+    add("File readability", got, 10, note, "Save the CV as a text-based PDF or DOCX (not a scanned image).")
+
+    score = round(sum(p[1] for p in parts), 1)
+    return {"score": score, "parts": parts, "tips": tips[:4], "keyword_label": kw_label}
+
+
 # Acronyms and product names that str.title() would spell wrongly
 # (e.g. "Sql", "Seo", "Rest Api"). Purely a display fix; detection is unchanged.
 for _key, _label in {
